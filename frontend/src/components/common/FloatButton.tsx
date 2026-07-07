@@ -12,6 +12,11 @@ export interface FloatButtonProps
 }
 
 const StyledFloatButton = styled(AntdFloatButton)`
+  @media (max-width: 640px) {
+    inset-inline-end: 2rem;
+    bottom: 9.6rem;
+  }
+
   .ant-float-btn-body {
     border: 1px solid var(--color-border);
     box-shadow: var(--shadow-md);

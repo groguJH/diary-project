@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import StyledComponentsRegistry from "@/lib/StyledComponentsRegistry";
+import AppFrame from "@/src/components/layout/AppFrame";
+import AppProviders from "@/src/components/providers/AppProviders";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -27,7 +29,11 @@ export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="ko" className={`${geistSans.variable} ${geistMono.variable}`}>
       <body>
-        <StyledComponentsRegistry>{children}</StyledComponentsRegistry>
+        <StyledComponentsRegistry>
+          <AppProviders>
+            <AppFrame>{children}</AppFrame>
+          </AppProviders>
+        </StyledComponentsRegistry>
       </body>
     </html>
   );
