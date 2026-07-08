@@ -19,17 +19,30 @@ const StyledFloatButton = styled(AntdFloatButton)`
 
   .ant-float-btn-body {
     border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    color: var(--color-text);
     box-shadow: var(--shadow-md);
+    transition:
+      background 160ms ease,
+      border-color 160ms ease,
+      box-shadow 160ms ease,
+      transform 160ms ease;
+  }
+
+  &:hover .ant-float-btn-body {
+    border-color: #ded8ce;
+    background: #f6f6f6;
+    color: var(--color-text);
   }
 
   &.ant-float-btn-primary {
     .ant-float-btn-body {
-      background: var(--color-primary);
+      background: var(--color-surface);
       color: var(--color-text);
     }
 
     &:hover .ant-float-btn-body {
-      background: var(--color-primary-hover);
+      background: #f6f6f6;
       color: var(--color-text);
     }
   }
@@ -42,7 +55,7 @@ const StyledFloatButton = styled(AntdFloatButton)`
 export function FloatButton({
   label = "일기 작성",
   tooltip,
-  variant = "primary",
+  variant = "default",
   shape = "circle",
   ...props
 }: FloatButtonProps) {

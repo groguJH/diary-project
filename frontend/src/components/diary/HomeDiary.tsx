@@ -4,8 +4,8 @@ import { type FormEvent, useState } from "react";
 import { FaSyncAlt } from "react-icons/fa";
 import { Button } from "@/src/components/common/Button";
 import Input from "@/src/components/common/Input";
+import ScrollTopFloatButton from "@/src/components/common/ScrollTopFloatButton";
 import Textarea from "@/src/components/common/Textarea";
-import DiaryWriteFloatButton from "@/src/components/diary/DiaryWriteFloatButton";
 import EmotionRadioGroup from "@/src/components/diary/EmotionRadioGroup";
 import {
   Actions,
@@ -123,13 +123,17 @@ export function HomeDiary() {
               <FieldGrid>
                 <Input
                   label="제목"
-                  onChange={(event) => updateDraft({ title: event.target.value })}
+                  onChange={(event) =>
+                    updateDraft({ title: event.target.value })
+                  }
                   placeholder="오늘을 한 문장으로 적어보세요"
                   value={draft.title}
                 />
                 <Input
                   label="날짜"
-                  onChange={(event) => updateDraft({ date: event.target.value })}
+                  onChange={(event) =>
+                    updateDraft({ date: event.target.value })
+                  }
                   type="date"
                   value={draft.date}
                 />
@@ -143,7 +147,9 @@ export function HomeDiary() {
               <Textarea
                 id="diary-content"
                 label="내용"
-                onChange={(event) => updateDraft({ content: event.target.value })}
+                onChange={(event) =>
+                  updateDraft({ content: event.target.value })
+                }
                 placeholder="오늘 있었던 일, 감정, 기억하고 싶은 장면을 적어보세요."
                 value={draft.content}
               />
@@ -172,17 +178,14 @@ export function HomeDiary() {
                 >
                   초기화
                 </Button>
-                <Button type="submit">일기 저장</Button>
+                <Button type="submit">저장하기</Button>
               </Actions>
             </Form>
           </WritingContent>
         </WritingCard>
       </WritingSection>
 
-      <DiaryWriteFloatButton
-        onWrite={() => document.getElementById("diary-content")?.focus()}
-        tooltip="일기 내용 바로 쓰기"
-      />
+      <ScrollTopFloatButton />
     </Page>
   );
 }

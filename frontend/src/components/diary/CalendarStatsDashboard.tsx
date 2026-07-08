@@ -2,7 +2,9 @@
 
 import { useMemo, useState } from "react";
 import { Calendar } from "antd";
-import dayjs from "dayjs";
+import dayjs, { type Dayjs } from "dayjs";
+import { useSession } from "next-auth/react";
+import { FaTimes } from "react-icons/fa";
 import {
   Bar,
   BarChart,
@@ -12,6 +14,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import ScrollTopFloatButton from "@/src/components/common/ScrollTopFloatButton";
 import {
   CalendarWrap,
   ChartBox,
@@ -23,9 +26,29 @@ import {
   DashboardHeadingGroup,
   DashboardStack,
   DateCell,
+  DateNumber,
   Description,
+  DetailBody,
+  DetailCloseButton,
+  DetailActionButton,
+  DetailActions,
+  DetailDate,
+  DetailEditField,
+  DetailEditInput,
+  DetailEditSelect,
+  DetailEditTextarea,
+  DetailEntry,
+  DetailHeader,
+  DetailMetaGrid,
+  DetailMetaItem,
+  DetailOverlay,
+  DetailPanel,
+  DetailText,
+  DetailTitle,
+  EmptyDetail,
   Hero,
   HeroContent,
+  MoodPill,
   Page,
   RecentDate,
   RecentItem,
@@ -36,10 +59,12 @@ import {
 import DiarySummaryGrid, {
   type DiarySummaryItem,
 } from "@/src/components/diary/DiarySummaryGrid";
-import DiaryWriteFloatButton from "@/src/components/diary/DiaryWriteFloatButton";
-import { getMoodLabel } from "@/src/components/diary/EmotionRadioGroup";
+import {
+  getMoodLabel,
+  moodOptions,
+} from "@/src/components/diary/EmotionRadioGroup";
 import { diaryEntriesState } from "@/src/store/diaryStore";
-import { useRecoilValue } from "@/src/store/recoilCompat";
+import { useRecoilState } from "@/src/store/recoilCompat";
 import type { DiaryEntry, DiaryMood } from "@/src/types/diary";
 
 const demoEntries: DiaryEntry[] = [
@@ -50,6 +75,7 @@ const demoEntries: DiaryEntry[] = [
     id: "demo-1",
     mood: "calm",
     title: "월간 기록 샘플",
+    author: "샘플 작성자",
   },
   {
     content: "샘플 일기입니다.",
@@ -58,6 +84,7 @@ const demoEntries: DiaryEntry[] = [
     id: "demo-2",
     mood: "happy",
     title: "좋았던 날",
+    author: "샘플 작성자",
   },
   {
     content: "샘플 일기입니다.",
@@ -66,6 +93,7 @@ const demoEntries: DiaryEntry[] = [
     id: "demo-3",
     mood: "tired",
     title: "바빴던 날",
+    author: "샘플 작성자",
   },
   {
     content: "샘플 일기입니다.",
@@ -74,6 +102,7 @@ const demoEntries: DiaryEntry[] = [
     id: "demo-4",
     mood: "sad",
     title: "흐린 날",
+    author: "샘플 작성자",
   },
 ];
 
@@ -81,10 +110,22 @@ function isSameMonth(date: string, monthKey: string) {
   return date.startsWith(monthKey);
 }
 
+type EditDraft = Pick<DiaryEntry, "content" | "mood" | "title">;
+
 export function CalendarStatsDashboard() {
   const [selectedMonth, setSelectedMonth] = useState(dayjs());
-  const savedEntries = useRecoilValue(diaryEntriesState);
-  const entries = savedEntries.length ? savedEntries : demoEntries;
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState<EditDraft>({
+    content: "",
+    mood: "calm",
+    title: "",
+  });
+  const [demoEntryList, setDemoEntryList] = useState(demoEntries);
+  const { data: session } = useSession();
+  const [savedEntries, setSavedEntries] = useRecoilState(diaryEntriesState);
+  const entries = savedEntries.length ? savedEntries : demoEntryList;
+  const fallbackAuthor = session?.user?.name ?? session?.user?.email ?? "나";
 
   const monthKey = selectedMonth.format("YYYY-MM");
   const monthlyEntries = useMemo(
@@ -97,6 +138,15 @@ export function CalendarStatsDashboard() {
       return acc;
     }, {});
   }, [monthlyEntries]);
+  const entriesByDate = useMemo(() => {
+    return monthlyEntries.reduce<Record<string, DiaryEntry[]>>((acc, entry) => {
+      acc[entry.date] = [...(acc[entry.date] ?? []), entry];
+      return acc;
+    }, {});
+  }, [monthlyEntries]);
+  const selectedDateEntries = selectedDate
+    ? (entriesByDate[selectedDate] ?? [])
+    : [];
   const chartData = useMemo(() => {
     const daysInMonth = selectedMonth.daysInMonth();
 
@@ -161,6 +211,71 @@ export function CalendarStatsDashboard() {
       value: `${entries.length}개`,
     },
   ];
+  const handleCalendarSelect = (date: Dayjs) => {
+    const dateKey = date.format("YYYY-MM-DD");
+
+    setSelectedMonth(date);
+    setSelectedDate(countByDate[dateKey] ? dateKey : null);
+  };
+  const handlePanelChange = (date: Dayjs) => {
+    setSelectedMonth(date);
+    setSelectedDate(null);
+    setEditingEntryId(null);
+  };
+  const updateEntries = (
+    updater: (currentEntries: DiaryEntry[]) => DiaryEntry[],
+  ) => {
+    if (savedEntries.length) {
+      setSavedEntries(updater);
+      return;
+    }
+
+    setDemoEntryList(updater);
+  };
+  const handleCloseDetail = () => {
+    setSelectedDate(null);
+    setEditingEntryId(null);
+  };
+  const handleStartEdit = (entry: DiaryEntry) => {
+    setEditingEntryId(entry.id);
+    setEditDraft({
+      content: entry.content,
+      mood: entry.mood,
+      title: entry.title,
+    });
+  };
+  const handleSaveEdit = (entryId: string) => {
+    if (!editDraft.title.trim() || !editDraft.content.trim()) {
+      return;
+    }
+
+    updateEntries((currentEntries) =>
+      currentEntries.map((entry) =>
+        entry.id === entryId
+          ? {
+              ...entry,
+              content: editDraft.content.trim(),
+              mood: editDraft.mood,
+              title: editDraft.title.trim(),
+            }
+          : entry,
+      ),
+    );
+    setEditingEntryId(null);
+  };
+  const handleDeleteEntry = (entryId: string) => {
+    updateEntries((currentEntries) =>
+      currentEntries.filter((entry) => entry.id !== entryId),
+    );
+
+    if (selectedDateEntries.length <= 1) {
+      setSelectedDate(null);
+    }
+
+    if (editingEntryId === entryId) {
+      setEditingEntryId(null);
+    }
+  };
 
   return (
     <Page>
@@ -191,23 +306,29 @@ export function CalendarStatsDashboard() {
             </DashboardHeadingGroup>
             <CalendarWrap>
               <Calendar
-                cellRender={(current, info) => {
+                fullCellRender={(current, info) => {
                   if (info.type !== "date") {
                     return info.originNode;
                   }
 
                   const dateKey = current.format("YYYY-MM-DD");
                   const count = countByDate[dateKey] ?? 0;
+                  const isCurrentMonth = current.isSame(selectedMonth, "month");
+                  const isActive = selectedDate === dateKey;
 
                   return (
-                    <DateCell>
-                      {info.originNode}
+                    <DateCell
+                      $active={isActive}
+                      $hasEntries={Boolean(count)}
+                      $muted={!isCurrentMonth}
+                    >
+                      <DateNumber>{current.format("DD")}</DateNumber>
                       {count ? <CountBadge>{count}개</CountBadge> : null}
                     </DateCell>
                   );
                 }}
-                onPanelChange={(date) => setSelectedMonth(date)}
-                onSelect={(date) => setSelectedMonth(date)}
+                onPanelChange={handlePanelChange}
+                onSelect={handleCalendarSelect}
                 value={selectedMonth}
               />
             </CalendarWrap>
@@ -235,6 +356,7 @@ export function CalendarStatsDashboard() {
                     tick={{ fill: "#7c705f", fontSize: 12 }}
                   />
                   <Tooltip
+                    cursor={false}
                     formatter={(value) => [`${value}개`, "작성 횟수"]}
                     labelFormatter={(label) =>
                       `${selectedMonth.format("M")}월 ${label}일`
@@ -272,7 +394,148 @@ export function CalendarStatsDashboard() {
         </DashboardContent>
       </DashboardCard>
 
-      <DiaryWriteFloatButton tooltip="홈에서 일기 작성하기" />
+      <DetailOverlay
+        $open={Boolean(selectedDate)}
+        aria-hidden={!selectedDate}
+        onClick={handleCloseDetail}
+      />
+      <DetailPanel $open={Boolean(selectedDate)} aria-label="선택한 날짜 일기">
+        <DetailHeader>
+          <div>
+            <DetailDate>
+              {selectedDate
+                ? dayjs(selectedDate).format("YYYY년 M월 D일")
+                : "선택한 날짜"}
+            </DetailDate>
+            <DetailTitle>나의 그날 기록</DetailTitle>
+          </div>
+          <DetailCloseButton
+            aria-label="일기 상세 닫기"
+            onClick={handleCloseDetail}
+            type="button"
+          >
+            <FaTimes aria-hidden="true" />
+          </DetailCloseButton>
+        </DetailHeader>
+
+        <DetailBody>
+          {selectedDateEntries.length ? (
+            selectedDateEntries.map((entry) => {
+              const isEditing = editingEntryId === entry.id;
+
+              return (
+                <DetailEntry key={entry.id}>
+                  {isEditing ? (
+                    <DetailEditField>
+                      제목
+                      <DetailEditInput
+                        onChange={(event) =>
+                          setEditDraft((current) => ({
+                            ...current,
+                            title: event.target.value,
+                          }))
+                        }
+                        value={editDraft.title}
+                      />
+                    </DetailEditField>
+                  ) : (
+                    <DetailTitle as="h3">{entry.title}</DetailTitle>
+                  )}
+                  <DetailMetaGrid>
+                    <DetailMetaItem>
+                      <span>작성자</span>
+                      <strong>{entry.author ?? fallbackAuthor}</strong>
+                    </DetailMetaItem>
+                    <DetailMetaItem>
+                      <span>날짜</span>
+                      <strong>{entry.date}</strong>
+                    </DetailMetaItem>
+                    <DetailMetaItem>
+                      <span>감정</span>
+                      {isEditing ? (
+                        <DetailEditSelect
+                          onChange={(event) =>
+                            setEditDraft((current) => ({
+                              ...current,
+                              mood: event.target.value as DiaryMood,
+                            }))
+                          }
+                          value={editDraft.mood}
+                        >
+                          {moodOptions.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </DetailEditSelect>
+                      ) : (
+                        <MoodPill $mood={entry.mood}>
+                          {getMoodLabel(entry.mood)}
+                        </MoodPill>
+                      )}
+                    </DetailMetaItem>
+                  </DetailMetaGrid>
+                  {isEditing ? (
+                    <DetailEditField>
+                      내용
+                      <DetailEditTextarea
+                        onChange={(event) =>
+                          setEditDraft((current) => ({
+                            ...current,
+                            content: event.target.value,
+                          }))
+                        }
+                        value={editDraft.content}
+                      />
+                    </DetailEditField>
+                  ) : (
+                    <DetailText>{entry.content}</DetailText>
+                  )}
+                  <DetailActions>
+                    {isEditing ? (
+                      <>
+                        <DetailActionButton
+                          onClick={() => handleSaveEdit(entry.id)}
+                          type="button"
+                        >
+                          저장
+                        </DetailActionButton>
+                        <DetailActionButton
+                          $variant="ghost"
+                          onClick={() => setEditingEntryId(null)}
+                          type="button"
+                        >
+                          취소
+                        </DetailActionButton>
+                      </>
+                    ) : (
+                      <>
+                        <DetailActionButton
+                          onClick={() => handleStartEdit(entry)}
+                          type="button"
+                        >
+                          수정하기
+                        </DetailActionButton>
+                        <DetailActionButton
+                          $variant="danger"
+                          onClick={() => handleDeleteEntry(entry.id)}
+                          type="button"
+                        >
+                          삭제하기
+                        </DetailActionButton>
+                      </>
+                    )}
+                  </DetailActions>
+                </DetailEntry>
+              );
+            })
+          ) : (
+            <EmptyDetail>선택한 날짜에 저장된 일기가 없습니다.</EmptyDetail>
+          )}
+        </DetailBody>
+      </DetailPanel>
+
+      <ScrollTopFloatButton />
     </Page>
   );
 }

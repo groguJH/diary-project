@@ -13,6 +13,8 @@ export interface MenuItem {
 interface TopMenuProps {
   items: MenuItem[];
   activePath: string;
+  authLabel: string;
+  onAuthClick: () => void;
 }
 
 const Header = styled.header`
@@ -96,6 +98,28 @@ const NavLink = styled(Link)<{ $active: boolean }>`
   white-space: nowrap;
 
   &:hover {
+    color: var(--color-text);
+  }
+
+  &:focus-visible {
+    outline: 0;
+    box-shadow: 0 0 0 0.3rem rgba(120, 210, 255, 0.38);
+  }
+`;
+
+const AuthButton = styled.button`
+  display: inline-flex;
+  min-height: 4rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0.8rem 1.2rem;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--color-text-soft);
+  font-weight: 800;
+  white-space: nowrap;
+
+  &:hover {
     background: var(--color-surface-soft);
     color: var(--color-text);
   }
@@ -106,7 +130,12 @@ const NavLink = styled(Link)<{ $active: boolean }>`
   }
 `;
 
-export function TopMenu({ items, activePath }: TopMenuProps) {
+export function TopMenu({
+  items,
+  activePath,
+  authLabel,
+  onAuthClick,
+}: TopMenuProps) {
   return (
     <Header>
       <Inner>
@@ -127,6 +156,11 @@ export function TopMenu({ items, activePath }: TopMenuProps) {
                 </li>
               );
             })}
+            <li>
+              <AuthButton onClick={onAuthClick} type="button">
+                {authLabel}
+              </AuthButton>
+            </li>
           </NavList>
         </Nav>
       </Inner>

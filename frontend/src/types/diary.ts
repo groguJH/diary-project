@@ -7,6 +7,7 @@ export interface DiaryEntry {
   date: string;
   mood: DiaryMood;
   createdAt: string;
+  author?: string;
 }
 
 export interface DiaryDraft {
