@@ -1,5 +1,6 @@
 import type { NextAuthOptions, User } from "next-auth";
 import { getServerSession } from "next-auth";
+import type { JWT } from "next-auth/jwt";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 
@@ -58,14 +59,66 @@ function toAuthUser(data: BackendLoginResponse, email: string): User | null {
   };
 }
 
+function assignAuthUserToToken(token: JWT, user: User) {
+  token.accessToken = user.accessToken;
+  token.id = user.id;
+  token.refreshToken = user.refreshToken;
+  token.role = user.role;
+}
+
+async function authenticateGoogleUser(
+  user: User,
+  providerUserId?: string,
+): Promise<User | null> {
+  const email = user.email?.trim();
+
+  if (!email || !providerUserId) {
+    return null;
+  }
+
+  try {
+    const response = await fetch(`${backendApiUrl}/api/auth/social/google`, {
+      body: JSON.stringify({
+        email,
+        name: user.name ?? email,
+        providerUserId,
+      }),
+      cache: "no-store",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      method: "POST",
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const data = (await response.json()) as BackendLoginResponse;
+
+    return toAuthUser(data, email);
+  } catch {
+    return null;
+  }
+}
+
 export const authOptions: NextAuthOptions = {
   callbacks: {
-    jwt({ token, user }) {
+    async jwt({ token, user, account }) {
+      if (user && account?.provider === "google") {
+        const backendUser = await authenticateGoogleUser(
+          user,
+          account.providerAccountId,
+        );
+
+        if (backendUser) {
+          assignAuthUserToToken(token, backendUser);
+          return token;
+        }
+      }
+
       if (user) {
-        token.accessToken = user.accessToken;
-        token.id = user.id;
-        token.refreshToken = user.refreshToken;
-        token.role = user.role;
+        assignAuthUserToToken(token, user);
       }
 
       return token;

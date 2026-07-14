@@ -1,6 +1,7 @@
 "use client";
 
 import { type FormEvent, useState } from "react";
+import { useSession } from "next-auth/react";
 import { FaSyncAlt } from "react-icons/fa";
 import { Button } from "@/src/components/common/Button";
 import Input from "@/src/components/common/Input";
@@ -28,10 +29,10 @@ import {
   WritingSection,
 } from "@/src/components/diary/HomeDiary.styles";
 import { getRandomDiaryPrompt } from "@/src/data/diaryPrompts";
+import { createDiaryEntry } from "@/src/services/diaryApi";
 import { diaryEntriesState } from "@/src/store/diaryStore";
 import { useRecoilState } from "@/src/store/recoilCompat";
 import type { DiaryDraft } from "@/src/types/diary";
-import { createDiaryEntry } from "@/src/utils/diaryStorage";
 
 function getToday() {
   return new Date().toISOString().slice(0, 10);
@@ -46,14 +47,16 @@ export function HomeDiary() {
   });
   const [message, setMessage] = useState("");
   const [isSuccess, setIsSuccess] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [prompt, setPrompt] = useState(() => getRandomDiaryPrompt());
   const [, setEntries] = useRecoilState(diaryEntriesState);
+  const { data: session } = useSession();
 
   const updateDraft = (nextDraft: Partial<DiaryDraft>) => {
     setDraft((current) => ({ ...current, ...nextDraft }));
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     if (!draft.title.trim() || !draft.content.trim()) {
@@ -62,22 +65,41 @@ export function HomeDiary() {
       return;
     }
 
-    const nextEntry = createDiaryEntry({
-      ...draft,
-      content: draft.content.trim(),
-      title: draft.title.trim(),
-    });
+    if (!session?.accessToken) {
+      setIsSuccess(false);
+      setMessage("로그인 후 일기를 저장할 수 있습니다.");
+      return;
+    }
 
-    setEntries((currentEntries) => [nextEntry, ...currentEntries]);
+    setIsSubmitting(true);
 
-    setDraft({
-      content: "",
-      date: getToday(),
-      mood: "calm",
-      title: "",
-    });
-    setIsSuccess(true);
-    setMessage("일기가 저장되었습니다. 월간 기록 페이지에서 확인할 수 있어요.");
+    try {
+      const nextEntry = await createDiaryEntry(session.accessToken, {
+        ...draft,
+        content: draft.content.trim(),
+        title: draft.title.trim(),
+      });
+
+      setEntries((currentEntries) => [nextEntry, ...currentEntries]);
+
+      setDraft({
+        content: "",
+        date: getToday(),
+        mood: "calm",
+        title: "",
+      });
+      setIsSuccess(true);
+      setMessage("일기가 DB에 저장되었습니다. 월간 기록 페이지에서 확인할 수 있어요.");
+    } catch (error) {
+      setIsSuccess(false);
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "일기를 저장하지 못했습니다.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -165,6 +187,7 @@ export function HomeDiary() {
 
               <Actions>
                 <Button
+                  disabled={isSubmitting}
                   $variant="ghost"
                   onClick={() =>
                     setDraft({
@@ -178,7 +201,9 @@ export function HomeDiary() {
                 >
                   초기화
                 </Button>
-                <Button type="submit">저장하기</Button>
+                <Button disabled={isSubmitting} type="submit">
+                  {isSubmitting ? "저장 중" : "저장하기"}
+                </Button>
               </Actions>
             </Form>
           </WritingContent>

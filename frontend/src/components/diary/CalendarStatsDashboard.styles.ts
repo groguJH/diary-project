@@ -104,17 +104,46 @@ export const DashboardDescription = styled.p`
 
 export const CalendarWrap = styled.div`
   overflow: hidden;
+  padding: clamp(1.6rem, 2.6vw, 2.4rem) clamp(2.4rem, 4vw, 4rem)
+    clamp(2rem, 3vw, 3.2rem);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
+  background:
+    linear-gradient(180deg, rgba(255, 253, 243, 0.6), #ffffff 11rem),
+    var(--color-surface);
 
   .ant-picker-calendar {
-    background: var(--color-surface);
+    overflow: hidden;
+    border-radius: var(--radius-sm);
+    background: transparent;
   }
 
   .ant-picker-calendar-header {
     gap: 0.8rem;
-    padding: 1.2rem 1.2rem 1.6rem;
+    padding: 0 0 2rem;
     border-bottom: 0;
+  }
+
+  .ant-picker-panel {
+    width: 100%;
+    background: transparent;
+  }
+
+  .ant-picker-body {
+    padding: 0;
+  }
+
+  .ant-picker-content {
+    width: 100%;
+    table-layout: fixed;
+    border-spacing: 0;
+    border-collapse: collapse;
+  }
+
+  .ant-picker-content thead th {
+    padding-bottom: 0.8rem;
+    color: var(--color-text-soft);
+    font-weight: 800;
   }
 
   .ant-picker-calendar-header .ant-radio-group {
@@ -140,7 +169,7 @@ export const CalendarWrap = styled.div`
   }
 
   .ant-picker-cell {
-    padding: 0.4rem;
+    padding: 0.35rem;
   }
 
   .ant-picker-cell::before,
@@ -149,12 +178,14 @@ export const CalendarWrap = styled.div`
   }
 
   .ant-picker-cell-inner {
+    width: 100%;
     background: transparent !important;
     box-shadow: none !important;
   }
 
   @media (max-width: 640px) {
     overflow-x: auto;
+    padding: 1.4rem 1.6rem 2rem;
 
     .ant-picker-calendar {
       min-width: 64rem;
@@ -168,6 +199,7 @@ export const DateCell = styled.div<{
   $muted?: boolean;
 }>`
   display: grid;
+  width: 100%;
   min-height: 7.2rem;
   align-content: start;
   gap: 0.7rem;
@@ -442,13 +474,18 @@ export const DetailActionButton = styled.button<{
     background 160ms ease,
     transform 160ms ease;
 
-  &:hover {
+  &:hover:not(:disabled) {
     background: ${({ $variant }) =>
       $variant === "danger" ? "#ffe1dc" : "var(--color-surface-soft)"};
   }
 
-  &:active {
+  &:active:not(:disabled) {
     transform: translateY(1px);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
   }
 `;
 

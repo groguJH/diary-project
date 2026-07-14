@@ -1,0 +1,14 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "java",
+      "name": "Backend Spring Boot",
+      "request": "launch",
+      "mainClass": "com.example.diary.DiaryApplication",
+      "cwd": "${workspaceFolder}/backend",
+      "envFile": "${workspaceFolder}/backend/.env",
+      "vmArgs": "-Dspring.config.additional-location=file:${workspaceFolder}/backend/src/main/resources/application.properties"
+    }
+  ]
+}

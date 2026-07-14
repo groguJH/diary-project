@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Calendar } from "antd";
 import dayjs, { type Dayjs } from "dayjs";
 import { useSession } from "next-auth/react";
@@ -63,6 +63,11 @@ import {
   getMoodLabel,
   moodOptions,
 } from "@/src/components/diary/EmotionRadioGroup";
+import {
+  deleteDiaryEntry,
+  fetchDiaryEntries,
+  updateDiaryEntry,
+} from "@/src/services/diaryApi";
 import { diaryEntriesState } from "@/src/store/diaryStore";
 import { useRecoilState } from "@/src/store/recoilCompat";
 import type { DiaryEntry, DiaryMood } from "@/src/types/diary";
@@ -121,11 +126,44 @@ export function CalendarStatsDashboard() {
     mood: "calm",
     title: "",
   });
+  const [loadError, setLoadError] = useState("");
+  const [isMutating, setIsMutating] = useState(false);
   const [demoEntryList, setDemoEntryList] = useState(demoEntries);
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const [savedEntries, setSavedEntries] = useRecoilState(diaryEntriesState);
-  const entries = savedEntries.length ? savedEntries : demoEntryList;
+  const accessToken = session?.accessToken;
+  const isAuthenticated = Boolean(accessToken);
+  const entries = isAuthenticated ? savedEntries : demoEntryList;
   const fallbackAuthor = session?.user?.name ?? session?.user?.email ?? "나";
+
+  useEffect(() => {
+    if (status === "loading" || !accessToken) {
+      return;
+    }
+
+    let ignore = false;
+
+    fetchDiaryEntries(accessToken)
+      .then((nextEntries) => {
+        if (!ignore) {
+          setSavedEntries(nextEntries);
+          setLoadError("");
+        }
+      })
+      .catch((error) => {
+        if (!ignore) {
+          setLoadError(
+            error instanceof Error
+              ? error.message
+              : "일기 목록을 불러오지 못했습니다.",
+          );
+        }
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [accessToken, setSavedEntries, status]);
 
   const monthKey = selectedMonth.format("YYYY-MM");
   const monthlyEntries = useMemo(
@@ -207,7 +245,7 @@ export function CalendarStatsDashboard() {
     },
     {
       label: "전체 기록",
-      meta: savedEntries.length ? "저장된 전체 일기" : "샘플 데이터 표시 중",
+      meta: isAuthenticated ? "DB에 저장된 전체 일기" : "샘플 데이터 표시 중",
       value: `${entries.length}개`,
     },
   ];
@@ -225,7 +263,7 @@ export function CalendarStatsDashboard() {
   const updateEntries = (
     updater: (currentEntries: DiaryEntry[]) => DiaryEntry[],
   ) => {
-    if (savedEntries.length) {
+    if (isAuthenticated) {
       setSavedEntries(updater);
       return;
     }
@@ -244,29 +282,78 @@ export function CalendarStatsDashboard() {
       title: entry.title,
     });
   };
-  const handleSaveEdit = (entryId: string) => {
+  const handleSaveEdit = async (entry: DiaryEntry) => {
     if (!editDraft.title.trim() || !editDraft.content.trim()) {
       return;
     }
 
+    if (accessToken) {
+      setIsMutating(true);
+
+      try {
+        const updatedEntry = await updateDiaryEntry(accessToken, entry.id, {
+          content: editDraft.content.trim(),
+          date: entry.date,
+          mood: editDraft.mood,
+          title: editDraft.title.trim(),
+        });
+
+        setSavedEntries((currentEntries) =>
+          currentEntries.map((currentEntry) =>
+            currentEntry.id === entry.id ? updatedEntry : currentEntry,
+          ),
+        );
+        setEditingEntryId(null);
+      } catch (error) {
+        setLoadError(
+          error instanceof Error
+            ? error.message
+            : "일기를 수정하지 못했습니다.",
+        );
+      } finally {
+        setIsMutating(false);
+      }
+
+      return;
+    }
+
     updateEntries((currentEntries) =>
-      currentEntries.map((entry) =>
-        entry.id === entryId
+      currentEntries.map((currentEntry) =>
+        currentEntry.id === entry.id
           ? {
-              ...entry,
+              ...currentEntry,
               content: editDraft.content.trim(),
               mood: editDraft.mood,
               title: editDraft.title.trim(),
             }
-          : entry,
+          : currentEntry,
       ),
     );
     setEditingEntryId(null);
   };
-  const handleDeleteEntry = (entryId: string) => {
-    updateEntries((currentEntries) =>
-      currentEntries.filter((entry) => entry.id !== entryId),
-    );
+  const handleDeleteEntry = async (entryId: string) => {
+    if (accessToken) {
+      setIsMutating(true);
+
+      try {
+        await deleteDiaryEntry(accessToken, entryId);
+        setSavedEntries((currentEntries) =>
+          currentEntries.filter((entry) => entry.id !== entryId),
+        );
+      } catch (error) {
+        setLoadError(
+          error instanceof Error
+            ? error.message
+            : "일기를 삭제하지 못했습니다.",
+        );
+      } finally {
+        setIsMutating(false);
+      }
+    } else {
+      updateEntries((currentEntries) =>
+        currentEntries.filter((entry) => entry.id !== entryId),
+      );
+    }
 
     if (selectedDateEntries.length <= 1) {
       setSelectedDate(null);
@@ -380,7 +467,10 @@ export function CalendarStatsDashboard() {
           <DashboardHeadingGroup>
             <DashboardHeading>최근 일기</DashboardHeading>
             <DashboardDescription>
-              저장된 일기 중 최근 5개입니다.
+              {loadError ||
+                (isAuthenticated
+                  ? "DB에 저장된 일기 중 최근 5개입니다."
+                  : "로그인 전에는 샘플 기록이 표시됩니다.")}
             </DashboardDescription>
           </DashboardHeadingGroup>
           <RecentList>
@@ -495,13 +585,15 @@ export function CalendarStatsDashboard() {
                     {isEditing ? (
                       <>
                         <DetailActionButton
-                          onClick={() => handleSaveEdit(entry.id)}
+                          disabled={isMutating}
+                          onClick={() => handleSaveEdit(entry)}
                           type="button"
                         >
-                          저장
+                          {isMutating ? "저장 중" : "저장"}
                         </DetailActionButton>
                         <DetailActionButton
                           $variant="ghost"
+                          disabled={isMutating}
                           onClick={() => setEditingEntryId(null)}
                           type="button"
                         >
@@ -511,6 +603,7 @@ export function CalendarStatsDashboard() {
                     ) : (
                       <>
                         <DetailActionButton
+                          disabled={isMutating}
                           onClick={() => handleStartEdit(entry)}
                           type="button"
                         >
@@ -518,6 +611,7 @@ export function CalendarStatsDashboard() {
                         </DetailActionButton>
                         <DetailActionButton
                           $variant="danger"
+                          disabled={isMutating}
                           onClick={() => handleDeleteEntry(entry.id)}
                           type="button"
                         >
