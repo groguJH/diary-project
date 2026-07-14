@@ -1,10 +1,3 @@
-# Diary Project
-
-> 하루의 감정과 기록을 남기고, 월간 달력과 차트로 작성 흐름을 확인하는 다이어리 서비스입니다.  
-> 프론트엔드(Next.js)와 백엔드(SpringBoot)로 서버를 분리하고 실제 인증, 인가, DB 저장, 배포 환경까지 고려해 구현했습니다.
-
-<br/>
-
 ## 목차
 
 - [프로젝트 소개](#프로젝트-소개)
@@ -27,6 +20,12 @@
 
 ## 프로젝트 소개
 <img width="400" height="auto" alt="image" src="https://github.com/user-attachments/assets/62f46cab-87a9-4954-967e-48da4c87bd65" />
+
+# Diary Project
+
+> 하루의 감정과 기록을 남기고, 월간 달력과 차트로 작성 흐름을 확인하는 다이어리 서비스입니다.  
+> 프론트엔드(Next.js)와 백엔드(SpringBoot)로 서버를 분리하고 실제 인증, 인가, DB 저장, 배포 환경까지 고려해 구현했습니다.
+
 
 [🌐링크](https://diary-project-beige.vercel.app/)
 Diary Project는 사용자에게 글감을 주어 일기를 작성할 수 있도록 도와주는 서비스입니다.
