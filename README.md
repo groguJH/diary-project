@@ -1,7 +1,9 @@
-# JH Diary Project
+# Diary Project
 
 > 하루의 감정과 기록을 남기고, 월간 달력과 차트로 작성 흐름을 확인하는 다이어리 서비스입니다.  
-> 신입 개발자 포트폴리오를 목적으로, 프론트엔드와 백엔드를 분리하고 실제 인증, 인가, DB 저장, 배포 환경까지 고려해 구현했습니다.
+> 프론트엔드(Next.js)와 백엔드(SpringBoot)로 서버를 분리하고 실제 인증, 인가, DB 저장, 배포 환경까지 고려해 구현했습니다.
+
+<br/>
 
 ## 목차
 
@@ -21,8 +23,12 @@
 - [구현하며 고려한 점](#구현하며-고려한-점)
 - [향후 개선 사항](#향후-개선-사항)
 
-## 프로젝트 소개
+<br/>
 
+## 프로젝트 소개
+<img width="400" height="auto" alt="image" src="https://github.com/user-attachments/assets/62f46cab-87a9-4954-967e-48da4c87bd65" />
+
+[🌐링크](https://diary-project-beige.vercel.app/)
 Diary Project는 사용자에게 글감을 주어 일기를 작성할 수 있도록 도와주는 서비스입니다.
 사용자가 로그인 후 일기를 작성하면
 작성한 기록을 월간 달력과 막대 그래프로 확인할 수 있습니다.
@@ -37,6 +43,8 @@ Diary Project는 사용자에게 글감을 주어 일기를 작성할 수 있도
 - NextAuth와 백엔드 JWT 연동
 - PostgreSQL/Supabase를 활용한 데이터 영속화
 - Vercel, Render 배포를 고려한 환경변수 구성
+
+<br/>
 
 ## 주요 기능
 
