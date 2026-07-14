@@ -27,7 +27,10 @@
 > 프론트엔드(Next.js)와 백엔드(SpringBoot)로 서버를 분리하고 실제 인증, 인가, DB 저장, 배포 환경까지 고려해 구현했습니다.
 
 
-[🌐링크](https://diary-project-beige.vercel.app/)
+[🌐프로젝트 링크](https://diary-project-beige.vercel.app/)
+
+<br/>
+
 Diary Project는 사용자에게 글감을 주어 일기를 작성할 수 있도록 도와주는 서비스입니다.
 사용자가 로그인 후 일기를 작성하면
 작성한 기록을 월간 달력과 막대 그래프로 확인할 수 있습니다.
