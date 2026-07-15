@@ -29,6 +29,8 @@
 
 ## 프로젝트 소개
 
+<img width="900" height="auto" alt="홈화면" src="https://github.com/user-attachments/assets/d9128149-3521-4d3e-a7f3-521446da1564" />
+
 
 [🌐프로젝트 링크](https://diary-project-beige.vercel.app/)
 
